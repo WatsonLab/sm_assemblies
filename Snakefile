@@ -6,7 +6,7 @@ import sys
 import os
 
 rule all:
-	input: "blat_grch38.tsv", "blat_pacbio.tsv", "blat_nanopore.tsv"
+	input: "blat_grch38.tsv", "blat_pacbio.tsv", "blat_nanopore.tsv", "blat_chm1.round2.psl", "blat_chm1.round2.tsv"
 
 rule grch38_download:
 	output: "Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz"
@@ -19,6 +19,10 @@ rule pacbio_download:
 rule nanopore_download:
         output: "nanopore.fasta.gz"
         shell: "wget -O {output} ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/900/232/925/GCA_900232925.1_Nanopore-only_assembly_with_Illumina_polishing/GCA_900232925.1_Nanopore-only_assembly_with_Illumina_polishing_genomic.fna.gz"
+
+rule canu_chm_quiver_download:
+	output: "chm1.round2.fasta"
+	shell: "wget http://gembox.cbcb.umd.edu/shared/canu/quiver/canu/chm1.round2.fasta"
 
 rule exons_download:
 	output: "protein_coding_exons.fasta"
@@ -54,6 +58,11 @@ rule make_ooc_grch38:
 	output: "grch38.ooc"
 	shell: "blat {input} /dev/null /dev/null -makeOoc={output} -repMatch=1024"
 
+rule make_ooc_canu_chm_quiver:
+	input: "chm1.round2.fasta"
+	output: "chm1.round2.ooc"
+	shell: "blat {input} /dev/null /dev/null -makeOoc={output} -repMatch=1024"
+
 rule blat_grch38:
 	input: 
 		ooc="grch38.ooc",
@@ -74,6 +83,13 @@ rule blat_pacbio:
 		exn="protein_coding_exons.filtered.fasta"
 	output: "blat_pacbio.psl"
 	shell: "blat pacbio.fasta.gz {input.exn} -out=blast9 -ooc={input.ooc} {output}"
+
+rule blat_canu_chm_quiver:
+	input:
+		ooc="chm1.round2.ooc",
+		exn="protein_coding_exons.filtered.fasta"
+	output: "blat_chm1.round2.psl"
+	shell: "blat chm1.round2.fasta {input.exn} -out=blast9 -ooc={input.ooc} {output}"
 
 rule report_grch38:
 	input: "blat_grch38.psl", "protein_coding_exons.filtered.fasta"
@@ -185,3 +201,40 @@ rule report_pacbio:
                         print("%s\t%s\t%s\t%s\t%s\t%s" % (arr[0], seq_length[arr[0]], arr[2], arr[3], arr[4], arr[5]), file=f)
 
                 f.close()
+
+rule report_chm1_canu_quiver:
+	input: "blat_chm1.round2.psl", "protein_coding_exons.filtered.fasta"
+	output: "blat_chm1.round2.tsv"
+	run:
+		seq_length = dict()
+
+		with open(input[1], "rU") as handle:
+			for record in SeqIO.parse(handle, "fasta"):
+				seq_length[record.id] = len(record.seq)
+
+		# open the input file
+		psl_file = open(input[0], mode="r")
+
+		top_hits = dict()
+
+		# open the output file
+		f = open(output[0], 'w')
+
+		# iterate over file
+		for row in psl_file:
+
+			if row.startswith("#"):
+				continue
+
+			# split on whitespace
+			arr = row.strip().split()
+
+			if arr[0] in top_hits:
+				continue
+
+			top_hits[arr[0]] = 1
+
+			print("%s\t%s\t%s\t%s\t%s\t%s" % (arr[0], seq_length[arr[0]], arr[2], arr[3], arr[4], arr[5]), file=f)
+
+		f.close()
+
