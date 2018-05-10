@@ -18,10 +18,12 @@ cd sm_assemblies
 ```
 
 # download genomes
+```
 /bin/bash scripts/download.sh
 gunzip *.fasta.gz
 mkdir genomes
 mv *.fasta genomes
+```
 
 # run
 ```
