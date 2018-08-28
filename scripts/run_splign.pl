@@ -20,29 +20,40 @@ mkdir("$dir/CDS") unless (-d "$dir/CDS");
 # BLAST file
 my $in = Bio::SearchIO->new(-file => $ARGV[1], -format => 'blast');
 while(my $result = $in->next_result) {
-	my $hit = $result->next_hit;
 	
+	# get top two hits
+	my $hit = $result->next_hit;
+	next unless defined $hit;
+	my $hit2 = $result->next_hit;
+
+	# get query details	
 	my $qv = $result->query_name;
 	my $qn = $qv;
 	$qn =~ s/\.\d+//;
 
 	next unless (exists $int{$qn});
 
-	next unless defined $hit;
+	my @hits = ();
+        push(@hits, $hit) if defined ($hit);
+        push(@hits, $hit2) if defined ($hit2);
 
-	my $hn = $hit->name;
+	foreach $hit (@hits) {
 
-	# CDS
-	unless (-d "$dir/CDS/$qv") {
-		mkdir("$dir/CDS/$qv");
-		system("samtools faidx protein_coding_transcripts.fasta \"$qv\" > $dir/CDS/$qv/$qv.fa");
-		# the Assembly
-		system("samtools faidx $ARGV[2] \"$hn\" > $dir/CDS/$qv/$hn.fa");
-		print STDERR "Trying splign on $qv and CDS $hn\n";
-		system("splign -type mrna -query $dir/CDS/$qv/$qv.fa -subj $dir/CDS/$qv/$hn.fa -aln $dir/CDS/$qv/$qv.aln -log $dir/CDS/$qv/splign.log > $dir/CDS/$qv/$qv.out");
-		system("rm $dir/CDS/$qv/$hn.fa");
-	}
+                my $hn = $hit->name;
 
-	print "$qv\t$qn\t", $hit->name, "\n";
+                # CDS
+                unless (-d "$dir/CDS/$qv") {
+                        mkdir("$dir/CDS/$qv");
+                }
 
+                system("samtools faidx Homo_sapiens.GRCh38.cds.all.fa.gz \"$qv\" > $dir/CDS/$qv/$qv.fa");
+                # the Assembly
+                system("samtools faidx $ARGV[2] \"$hn\" > $dir/CDS/$qv/$hn.fa");
+                print STDERR "Trying splign on $qv and CDS $hn\n";
+                system("./splign -type mrna -query $dir/CDS/$qv/$qv.fa -subj $dir/CDS/$qv/$hn.fa -aln $dir/CDS/$qv/$qv.$hn.aln -log $dir/CDS/$qv/$qv.$hn.splign.log > $dir/CDS/$qv/$qv.hn.out");
+                system("rm $dir/CDS/$qv/$hn.fa");
+
+                print "$qv\t$qn\t$hn\n";
+        }
 }
+
