@@ -135,8 +135,11 @@ rule report:
                                 continue
 
                         top_hits[arr[0]] = 1
-
-                        print("%s\t%s\t%s\t%s\t%s\t%s" % (arr[0], seq_length[arr[0]], arr[2], arr[3], arr[4], arr[5]), file=f)
+			
+			if arr[0] in seq_length.keys():
+				print("%s\t%s\t%s\t%s\t%s\t%s" % (arr[0], seq_length[arr[0]], arr[2], arr[3], arr[4], arr[5]), file=f)
+			else:
+    				print("This key isn't in seq_length: ", arr[0], end='\n\n')
 
                 f.close()
 
