@@ -104,9 +104,9 @@ rule combine_lists:
 	shell: "cat {input} | sort | uniq > {output}"
 
 rule report:
-        input: "blat_{id}.psl", "protein_coding_exons.filtered.fasta"
-        output: "blat_{id}.tsv"
-        run:
+	input: "blat_{id}.psl", "protein_coding_exons.filtered.fasta"
+	output: "blat_{id}.tsv"
+	run:
 		seq_length = dict()
 
  		with open(input[1], "rU") as handle:
