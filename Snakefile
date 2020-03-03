@@ -107,39 +107,38 @@ rule report:
         input: "blat_{id}.psl", "protein_coding_exons.filtered.fasta"
         output: "blat_{id}.tsv"
         run:
-                seq_length = dict()
+		seq_length = dict()
 
-                with open(input[1], "rU") as handle:
-                        for record in SeqIO.parse(handle, "fasta"):
-                                seq_length[record.id] = len(record.seq)
+ 		with open(input[1], "rU") as handle:
+			for record in SeqIO.parse(handle, "fasta"):
+				seq_length[record.id] = len(record.seq)
 
+		# open the input file
+		psl_file = open(input[0], mode="r")
 
-                # open the input file
-                psl_file = open(input[0], mode="r")
+		top_hits = dict()
 
-                top_hits = dict()
+		# open the output file
+		f = open(output[0], 'w')
 
-                # open the output file
-                f = open(output[0], 'w')
+		# iterate over file
+		for row in psl_file:
 
-                # iterate over file
-                for row in psl_file:
+			if row.startswith("#"):
+				continue
+  
+			# split on whitespace
+			arr = row.strip().split()
 
-                        if row.startswith("#"):
-                                continue
+			if arr[0] in top_hits:
+				continue
 
-                        # split on whitespace
-                        arr = row.strip().split()
-
-                        if arr[0] in top_hits:
-                                continue
-
-                        top_hits[arr[0]] = 1
+			top_hits[arr[0]] = 1
 			
 			if arr[0] in seq_length.keys():
 				print("%s\t%s\t%s\t%s\t%s\t%s" % (arr[0], seq_length[arr[0]], arr[2], arr[3], arr[4], arr[5]), file=f)
 			else:
-    				print("This key isn't in seq_length: ", arr[0], end='\n\n')
+				print("This key isn't in seq_length: ", arr[0], end='\n\n')
 
-                f.close()
+		f.close()
 
